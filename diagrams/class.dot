@@ -1,0 +1,17 @@
+digraph ClassDiagram {
+  rankdir=TB;
+  fontname="Helvetica";
+  node [shape=record, fontname="Helvetica" fontsize=10, style=filled, fillcolor="#eaf0fb", color="#2b3a55"];
+  edge [fontname="Helvetica" fontsize=9, color="#2b3a55"];
+
+  User [label="{User|+ id: int\l+ name: string\l+ email: string\l+ password_hash: string\l+ role: string\l|+ register()\l+ login()\l}"];
+  Book [label="{Book|+ id: int\l+ title: string\l+ author: string\l+ isbn: string\l+ total_copies: int\l+ available_copies: int\l|+ search()\l}"];
+  Category [label="{Category|+ id: int\l+ name: string\l|}"];
+  Loan [label="{Loan|+ id: int\l+ user_id: int\l+ book_id: int\l+ loan_date: datetime\l+ due_date: datetime\l+ return_date: datetime\l+ status: string\l|+ borrow()\l+ returnBook()\l}"];
+  EmailService [label="{EmailService|+ smtpConfig|+ sendWelcomeEmail()\l+ sendDueDateReminder()\l}"];
+
+  User -> Loan [label="1..*", arrowhead=none];
+  Book -> Loan [label="1..*", arrowhead=none];
+  Category -> Book [label="1..*", arrowhead=none];
+  Loan -> EmailService [label="<<use>>", style=dashed];
+}

@@ -1,0 +1,37 @@
+digraph UseCase {
+  rankdir=LR;
+  fontname="Helvetica";
+  node [fontname="Helvetica" fontsize=11];
+
+  Admin [shape=none, label="Admin\n👤", fontsize=13];
+  Member [shape=none, label="Anëtar\n👤", fontsize=13];
+
+  subgraph cluster_system {
+    label="Sistemi i Bibliotekës";
+    style=rounded;
+    color="#2b3a55";
+    fontsize=13;
+    node [shape=ellipse, style=filled, fillcolor="#eaf0fb", color="#2b3a55"];
+
+    UC1 [label="Regjistrohu / Hyr"];
+    UC2 [label="Kërko libra"];
+    UC3 [label="Huazo libër"];
+    UC4 [label="Kthe libër"];
+    UC5 [label="Shiko huazimet e mia"];
+    UC6 [label="Menaxho libra\n(shto/ndrysho/fshi)"];
+    UC7 [label="Shiko raporte"];
+    UC8 [label="Merr njoftim email\npër afatin"];
+  }
+
+  Member -> UC1;
+  Member -> UC2;
+  Member -> UC3;
+  Member -> UC4;
+  Member -> UC5;
+  Member -> UC8;
+
+  Admin -> UC1;
+  Admin -> UC6;
+  Admin -> UC7;
+  Admin -> UC4;
+}

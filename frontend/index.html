@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8" />
+<title>Sistemi i Bibliotekës</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 30px auto; padding: 0 16px; background:#f7f7f9;}
+  h1 { color:#2b3a55; }
+  .card { background:#fff; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.1);}
+  input, select, button { padding:8px; margin:4px 0; font-size:14px; }
+  button { background:#2b3a55; color:#fff; border:none; border-radius:4px; cursor:pointer; padding:8px 14px;}
+  button:hover { background:#1c2740; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid #eee; font-size:14px; }
+  #authSection, #appSection { display:none; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .row > * { flex:1; }
+  .msg { color:#c0392b; font-size:13px; }
+</style>
+</head>
+<body>
+<h1>📚 Sistemi i Bibliotekës</h1>
+
+<div class="card" id="authSection" style="display:block">
+  <h3>Hyrje / Regjistrim</h3>
+  <div class="row">
+    <input id="name" placeholder="Emri (vetëm për regjistrim)" />
+    <input id="email" placeholder="Email" />
+    <input id="password" type="password" placeholder="Fjalëkalimi" />
+  </div>
+  <button onclick="register()">Regjistrohu</button>
+  <button onclick="login()">Hyr</button>
+  <p class="msg" id="authMsg"></p>
+</div>
+
+<div class="card" id="appSection">
+  <p>Mirë se erdhe, <b id="userName"></b> (<span id="userRole"></span>) — <a href="#" onclick="logout()">Dil</a></p>
+
+  <h3>Kërko libra</h3>
+  <input id="searchBox" placeholder="Kërko sipas titullit ose autorit" oninput="loadBooks()" />
+  <table id="booksTable">
+    <thead><tr><th>Titull</th><th>Autor</th><th>Disponueshëm</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="adminPanel" style="display:none">
+    <h3>Shto libër (Admin)</h3>
+    <div class="row">
+      <input id="newTitle" placeholder="Titulli" />
+      <input id="newAuthor" placeholder="Autori" />
+      <input id="newCopies" type="number" placeholder="Numri i kopjeve" value="1" />
+      <button onclick="addBook()">Shto</button>
+    </div>
+  </div>
+
+  <h3>Huazimet e mia</h3>
+  <table id="loansTable">
+    <thead><tr><th>Libri</th><th>Afati</th><th>Statusi</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const API = 'http://localhost:4000/api';
+let token = localStorage_token();
+function localStorage_token(){ return null; } // shmang browser storage sipas kufizimeve te platformes
+let currentUser = null;
+
+async function register() {
+  const name = document.getElementById('name').value;
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const res = await fetch(`${API}/auth/register`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name, email, password })
+  });
+  const data = await res.json();
+  if (!res.ok) return showAuthMsg(data.error);
+  onLogin(data);
+}
+
+async function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const res = await fetch(`${API}/auth/login`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+  if (!res.ok) return showAuthMsg(data.error);
+  onLogin(data);
+}
+
+function showAuthMsg(msg) { document.getElementById('authMsg').innerText = msg; }
+
+function onLogin(data) {
+  token = data.token;
+  currentUser = data.user;
+  document.getElementById('authSection').style.display = 'none';
+  document.getElementById('appSection').style.display = 'block';
+  document.getElementById('userName').innerText = currentUser.name;
+  document.getElementById('userRole').innerText = currentUser.role;
+  if (currentUser.role === 'admin') document.getElementById('adminPanel').style.display = 'block';
+  loadBooks();
+  loadLoans();
+}
+
+function logout() {
+  token = null; currentUser = null;
+  document.getElementById('authSection').style.display = 'block';
+  document.getElementById('appSection').style.display = 'none';
+}
+
+async function loadBooks() {
+  const search = document.getElementById('searchBox').value;
+  const res = await fetch(`${API}/books?search=${encodeURIComponent(search)}`);
+  const books = await res.json();
+  const tbody = document.querySelector('#booksTable tbody');
+  tbody.innerHTML = '';
+  books.forEach(b => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${b.title}</td><td>${b.author}</td><td>${b.available_copies}/${b.total_copies}</td>
+      <td><button onclick="borrow(${b.id})">Huazo</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function borrow(bookId) {
+  const res = await fetch(`${API}/loans`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
+    body: JSON.stringify({ book_id: bookId })
+  });
+  const data = await res.json();
+  alert(res.ok ? `Huazuar! Afati: ${new Date(data.due_date).toLocaleDateString()}` : data.error);
+  loadBooks(); loadLoans();
+}
+
+async function loadLoans() {
+  const res = await fetch(`${API}/loans/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+  const loans = await res.json();
+  const tbody = document.querySelector('#loansTable tbody');
+  tbody.innerHTML = '';
+  loans.forEach(l => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${l.title}</td><td>${new Date(l.due_date).toLocaleDateString()}</td><td>${l.status}</td>
+      <td>${l.status === 'active' ? `<button onclick="returnBook(${l.id})">Kthe</button>` : ''}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function returnBook(loanId) {
+  const res = await fetch(`${API}/loans/${loanId}/return`, {
+    method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (res.ok) { loadBooks(); loadLoans(); }
+}
+
+async function addBook() {
+  const title = document.getElementById('newTitle').value;
+  const author = document.getElementById('newAuthor').value;
+  const total_copies = document.getElementById('newCopies').value;
+  const res = await fetch(`${API}/books`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
+    body: JSON.stringify({ title, author, total_copies })
+  });
+  if (res.ok) loadBooks();
+}
+</script>
+</body>
+</html>
