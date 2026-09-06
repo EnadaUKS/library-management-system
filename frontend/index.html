@@ -28,6 +28,9 @@
     <input id="email" placeholder="Email" />
     <input id="password" type="password" placeholder="Fjalëkalimi" />
   </div>
+  <label style="font-size:13px; display:block; margin:6px 0;">
+    <input type="checkbox" id="isAdmin" /> Regjistrohu si Admin (vetëm për demonstrim)
+  </label>
   <button onclick="register()">Regjistrohu</button>
   <button onclick="login()">Hyr</button>
   <p class="msg" id="authMsg"></p>
@@ -70,9 +73,10 @@ async function register() {
   const name = document.getElementById('name').value;
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
+  const isAdmin = document.getElementById('isAdmin').checked;
   const res = await fetch(`${API}/auth/register`, {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ name, email, password })
+    body: JSON.stringify({ name, email, password, role: isAdmin ? 'admin' : 'member' })
   });
   const data = await res.json();
   if (!res.ok) return showAuthMsg(data.error);
